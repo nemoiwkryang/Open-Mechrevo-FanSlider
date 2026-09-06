@@ -1,24 +1,26 @@
 # FanSlider — 机械革命 (Uniwill EC) 双风扇独立控制
 
-一个不依赖官方控制中心、直接读写 EC 的双风扇独立控制工具。
+> 文档、代码由AI辅助生成
+> ⚠️ 本项目主要目标是实现手动风扇控制，部分其他功能未作测试
+> ⚠️ **风险声明**：本项目通过逆向工程实现，直接操作 EC 寄存器。
+> 仅供学习和个人使用，请自行承担风险。
+
+一个不依赖官方控制中心和GCUBridge, GCUService，直接读写 EC 的双风扇独立控制工具。
 通过 `UWACPIDriver.sys`（设备 `ACPI\INOU0000`，接口 `\\.\ACPIDriver`）直写 EC RAM 曲线表，
 由 EC 固件自主按温度插值闭环控制风扇。
 
 - **双风扇独立控制**：CPU / GPU 各自 0–100% 定速，或 16 温度点逐点曲线（T0 锁定 0）
 - **零 OEM 依赖**：不需要 GCUBridge / GCUService / 官方 UWP，可完全脱离运行
-- **崩溃可恢复**：接管租约落盘，进程被杀后下次启动按快照还原 EC
 - **自动重接管**：门控被外部清除时自动重新武装
-- 官方模式切换（性能模式 / FanBoost / 手动档位）亦支持
+- 带官方模式切换（性能模式 / FanBoost / 手动档位）支持（⚠️未完全测试）
 
 ## 兼容性
 
 - 机械革命 / Uniwill 平台（本项目在 Mechrevo PH4 系列真机验证）
 - EC 固件 ITE EC-V14.6（RamFan 1.5 温控协议）
-- Windows 10/11，需管理员权限（`app.manifest` 已声明 `requireAdministrator`）
+- Windows 10/11，需管理员权限
 - 需 `UWACPIDriver.sys` 已安装并加载（机械革命控制中心安装包自带）
 
-> ⚠️ **风险声明**：本项目通过逆向工程实现，直接操作 EC 寄存器。
-> 仅供学习和个人使用，请自行承担风险。风扇控制不当可能导致过热损坏硬件。
 
 ## 构建
 
@@ -36,7 +38,6 @@ FanSlider.exe   （双击，UAC 提权）
 
 - 右上「接管控制权」：快照 + 武装门控 + 三区写表（约 2s），接管租约落盘 `%APPDATA%\FanSlider\lease.json`
 - CPU/GPU「整体定速」滑条：全部 16 温度点同值
-- 「逐点曲线」编辑器：拖动圆点逐点调整（T0 锁定 0），均匀时自动回同步滑条
 - 「应用滑条值」：写表区 + 等待实时 duty 收敛（≤30s）
 - 「恢复自动并交还」：按接管前快照还原全表区与门控
 - 系统托盘常驻；关机/注销时按「退出时自动交还」还原
@@ -44,7 +45,6 @@ FanSlider.exe   （双击，UAC 提权）
 ### CLI
 
 ```text
-FanSlider.exe --profiletest 50 25   # 端到端回归（接管→收敛→还原），哨兵值需 ≥20%
 FanSlider.exe --restoredefault 2    # 0xF5F 握手重装固件内置默认表 (1=Turbo 2=Gaming 3=Office)
 FanSlider.exe --read 751 7C5 75B 75C
 FanSlider.exe --wr 1804 46          # 写任意 EC 寄存器
@@ -52,7 +52,7 @@ FanSlider.exe --tables              # 导出风扇表区
 FanSlider.exe --set 5 / --boost on  # 手动档位 / 真·满速
 ```
 
-结果写 `bin\Release\net8.0-windows\selftest.log`。
+日志位于 `bin\Release\net8.0-windows\selftest.log`。
 
 ## 工作原理（EC 风扇协议速览）
 

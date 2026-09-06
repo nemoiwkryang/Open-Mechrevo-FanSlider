@@ -106,5 +106,6 @@ Program.cs            # CLI 诊断与回归测试入口
 ## 协议逆向来源
 
 本项目基于对机械革命控制中心（GCUService / GCUBridge / UWP）与 EC 固件（ITE EC-V14.6）
-的完整逆向：H 盘 GCUService_final5 可读源码、UWP 伪 C、MQTT 协议、bank-aware 8051 反汇编。
-协议细节与实验记录见项目文档目录。
+的完整逆向：GCUService 可读源码（JIT hook 还原）、UWP 伪 C、MQTT 协议、bank-aware 8051 反汇编，
+以及大量真机实验（含 0x727 解锁位、T0=0 规则、冷启动 XRAM 清零等关键发现）。
+协议细节与实验记录见各研究文档。

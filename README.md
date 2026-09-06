@@ -1,111 +1,114 @@
-# FanSlider — 机械革命 (Uniwill EC) 双风扇独立控制
+# FanSlider — 机械革命双风扇独立控制工具
 
-> 文档、代码由AI辅助生成
-> ⚠️ 本项目主要目标是实现手动风扇控制，部分其他功能未作测试
-> ⚠️ **风险声明**：本项目通过逆向工程实现，直接操作 EC 寄存器。
-> 仅供学习和个人使用，请自行承担风险。
+> ⚡ **轻量、干净的 EC 风扇接管工具，彻底告别官方臃肿后台。**
 
-一个不依赖官方控制中心和GCUBridge, GCUService，直接读写 EC 的双风扇独立控制工具。
-通过 `UWACPIDriver.sys`（设备 `ACPI\INOU0000`，接口 `\\.\ACPIDriver`）直写 EC RAM 曲线表，
-由 EC 固件自主按温度插值闭环控制风扇。
+FanSlider 是一个专门针对**机械革命 / Uniwill 平台**开发的风扇控制软件。它绕过了官方控制中心（GCUBridge / GCUService / 官方 UWP），直接通过驱动与主板的 EC (嵌入式控制器) 芯片通信，写入风扇曲线，实现 CPU 与 GPU 风扇的真正独立控制。
 
-- **双风扇独立控制**：CPU / GPU 各自 0–100% 定速，或 16 温度点逐点曲线（T0 锁定 0）
-- **零 OEM 依赖**：不需要 GCUBridge / GCUService / 官方 UWP，可完全脱离运行
-- **自动重接管**：门控被外部清除时自动重新武装
-- 带官方模式切换（性能模式 / FanBoost / 手动档位）支持（⚠️未完全测试）
+> ⚠️ **免责声明与风险提示**  
+> 本项目通过逆向工程实现，直接操作 EC 寄存器。不同机型的 BIOS 数据与 EC 固件版本可能存在差异，相关实现细节需自行逆向验证。仅供技术交流与个人使用，**作者不承担因使用本工具导致的硬件损坏或系统不稳定风险**。
 
-## 兼容性
+---
 
-- 机械革命 / Uniwill 平台（本项目在 Mechrevo PH4 系列真机验证）
-- EC 固件 ITE EC-V14.6（RamFan 1.5 温控协议）
-- Windows 10/11，需管理员权限
-- 需 `UWACPIDriver.sys` 已安装并加载（机械革命控制中心安装包自带）
+## ✨ 核心特性
 
+- **双风扇独立控制**：支持 CPU 和 GPU 风扇各自独立调速。能一键设置全速/定速（0–100%）。预计将支持类似控制台风格的风扇曲线。
+- **纯净无依赖**：无需安装或运行官方控制中心，后台零垃圾进程，干净爽快。
+- **硬件级温控**：将曲线直接写入 EC RAM，EC固件根据温度自动闭环调节风扇，不需要软件在后台疯狂刷新 CPU。
+- **智能防抢占**：若系统外部程序尝试清除控制权，工具会自动检测并重新武装控制。
+- **兼容官方模式**：保留了性能模式切换（Turbo/Gaming/Office）与一键强冷（FanBoost）功能。（未完全测试）
 
-## 构建
+---
 
-```text
+## 🖥️ 兼容性说明
+
+| 项目 | 要求 / 测试环境 |
+| --- | --- |
+| **实测机型** | **机械革命 (Mechrevo) 蛟龙 16 Pro 2025**（Ryzen 8945HX + RTX 5070 Ti） |
+| **适用平台** | 机械革命 / 其他同模具或类似方案的笔记本 |
+| **EC 固件要求** | ITE EC-V14.6（基于 RamFan 1.5 温控协议） |
+| **系统环境** | Windows 10 / 11（需**管理员权限**） |
+| **前置依赖** | 需系统中已安装并加载 `UWACPIDriver.sys` 驱动（安装过官方控制中心即可） |
+
+---
+
+## 🚀 快速上手
+
+### 1. 编译构建
+系统需安装 [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)：
+
+```bash
 dotnet build -c Release
 ```
+编译产物位于：`bin\Release\net8.0-windows\FanSlider.exe`
 
-产物：`bin\Release\net8.0-windows\FanSlider.exe`（需要 .NET 8 SDK / 运行时）。
+### 2. 界面使用
+右键以 **管理员身份运行** `FanSlider.exe`：
 
-## 使用
+1. **接管控制权**：点击右上角「接管控制权」，程序会自动保存当前快照并武装 EC 门控（约需 2 秒）。
+2. **调节转速**：
+   - 拖动 CPU/GPU 的「整体定速」滑块即可拉平曲线。
+   - 点击「应用滑条值」，写入风扇表，转速会在 30 秒内收敛稳定。
+3. **恢复控制**：点击「恢复自动并交还」，风扇交回给系统固件管理（软件关闭或关机时也会自动还原）。
+
+### 3. 命令行模式 (CLI) （未完全测试）
+如果你想配合自动化脚本使用，可以传入以下参数：
+
+```bash
+FanSlider.exe --set 5               # 切换至手动档位 5
+FanSlider.exe --boost on            # 开启真·风扇满速 (FanBoost)
+FanSlider.exe --tables              # 导出当前 EC 中的风扇曲线表
+FanSlider.exe --restoredefault 2    # 重置为固件默认曲线 (1:Turbo | 2:Gaming | 3:Office)
+FanSlider.exe --read 751 7C5        # 读取指定 EC 寄存器值
+FanSlider.exe --wr 1804 46          # 写入指定 EC 寄存器
+```
+
+---
+
+## 🔬 工作原理与技术细节
+
+工具通过 `\\.\ACPIDriver` 接口向 EC RAM 写入相关控制位和曲线数据。写完后，EC 固件会自行接管温控闭环，**无需软件在后台维持心跳或周期回写**。
+
+### 控制位配置速览
 
 ```text
-FanSlider.exe   （双击，UAC 提权）
+写入流程：
+0x751 (模式选择) ➔ 0x726 (开启 Custom 模式) ➔ 0x7C5 (开启 CPU/GPU 独立门控) 
+➔ 0x7C6 (开启总门) ➔ 0x741 (伪装 AP 存在) ➔ 0x727 (解锁 RAM 曲线) ➔ 交错写入 16 点曲线 ➔ 回读校验
 ```
 
-- 右上「接管控制权」：快照 + 武装门控 + 三区写表（约 2s），接管租约落盘 `%APPDATA%\FanSlider\lease.json`
-- CPU/GPU「整体定速」滑条：全部 16 温度点同值
-- 「应用滑条值」：写表区 + 等待实时 duty 收敛（≤30s）
-- 「恢复自动并交还」：按接管前快照还原全表区与门控
-- 系统托盘常驻；关机/注销时按「退出时自动交还」还原
+### 关键逆向发现
+在对官方 GCUService 和 ITE 8051 固件反汇编分析中，我们发现了几个关键坑点：
+1. **T0 必须置零**：曲线第一个温度点（T0，即 `0xF20` / `0xF50`）的 Duty 转速**必须为 0**。固件将其用作“自定义表已生效”的标志位，若非 0 则会自动退回内部默认曲线。
+2. **隐藏解锁位 `0x727 bit6`**：冷启动后此位默认为 0，如果不把它置位，即使其他门控全部打开，写入的曲线也不会生效（此项对应官方链中的 `CustomerModeLightOn` 操作）。
+3. **重启重置**：EC RAM 中的曲线表在电脑重启后会被清空，因此开机后需要再次运行本工具进行接管（建议设置为开机自启）。
 
-### CLI
+---
+
+## ⚠️ 已知注意事项
+
+- **最小转速限制**：GPU 风扇在硬件层面存在约 25% 的转速地板（~1621 RPM），低于此值的设置不会生效。
+- **温度滞回与缓冲**：EC 固件在执行曲线时带有平滑与滞回逻辑，因此实时转速可能会比当前档位值略有延迟或偏差，这是正常现象。
+- **软件冲突**：请勿在运行本工具的同时使用官方控制中心修改风扇曲线，否则两者会互相抢占控制权。
+
+---
+
+## 📁 代码结构
 
 ```text
-FanSlider.exe --restoredefault 2    # 0xF5F 握手重装固件内置默认表 (1=Turbo 2=Gaming 3=Office)
-FanSlider.exe --read 751 7C5 75B 75C
-FanSlider.exe --wr 1804 46          # 写任意 EC 寄存器
-FanSlider.exe --tables              # 导出风扇表区
-FanSlider.exe --set 5 / --boost on  # 手动档位 / 真·满速
+├── FanSlider.csproj     # .NET 8 WinForms 项目文件
+├── EcDriver.cs          # ACPIDriver 通信封装 (读写 EC 寄存器)
+├── FanProtocol.cs       # EC 寄存器地址定义与位掩码操作
+├── FanTableModel.cs     # 16 点风扇曲线数据模型与 OEM 写入时序
+├── EcCurveSession.cs    # 核心状态机 (快照备份 ➔ 武装门控 ➔ 写表 ➔ 还原)
+├── MainForm.cs          # 主界面交互逻辑
+├── UiControls.cs        # 自定义 UI 控件 (曲线编辑器、胶囊开关等)
+└── Program.cs           # 程序入口与 CLI 诊断命令行
 ```
 
-日志位于 `bin\Release\net8.0-windows\selftest.log`。
+---
 
-## 工作原理（EC 风扇协议速览）
+## 💡 致谢
 
-| 寄存器 | 含义 |
-|---|---|
-| `0x751` | 模式字节：gaming 0x00 / turbo 0x10 / office 0xA0；bit6 FanBoost |
-| `0x726` | bit7 = custom 表模式标志 |
-| `0x7C5` | bit7 = respective 门控（CPU/GPU 独立输出） |
-| `0x7C6` | bit2 = ENABLE_UNIVERSAL_FAN_CTRL（表驱动总门） |
-| `0x741` | bit0 = AP 存在（镜像 OEM 行为） |
-| `0x727` | bit6 = AP Customer Mode —— **RAM 表模式隐藏解锁位**，冷启动后必须置位，否则固件走内部曲线 |
-| `0xF00-F2F` / `0xF30-F5F` | CPU / GPU 曲线表（UpT/DownT/Duty ×16，Duty 存储 = 百分比 ×2） |
-| `0x75B/0x75C` | 实时占空比（raw = %×2） |
-| `0x43E/0x44F` | CPU / GPU 温度 |
+本项目基于对机械革命控制中心（GCUService / GCUBridge / UWP）及 ITE EC-V14.6 固件的深度逆向工程分析（包含 JIT Hook 还原、MQTT 协议抓包及 8051 汇编分析）。感谢相关技术研究文档对 0x727 解锁位及 XRAM 机制的揭示。
 
-接管序列（EC 固件自主闭环，无需周期回写）：
-
-```
-0x751←0x00 → 0x726|=0x80 → 0x7C5|=0x80(回读验证) → 0x7C6|=0x04 → 0x741|=0x01 → 0x727|=0x40
-→ 三区交错写表 (Up[i]/Down[i+1]/Duty[i]=Ti×2, T0=0, ≥10ms/字节) → 回读验证
-```
-
-关键点（真机实测结论）：
-
-- **T0（最低温度点 duty）必须为 0** —— 固件把 `0xF20/0xF50` 的 T0 当"表已启用"标记，非零则回退内部曲线
-- **0x727 bit6 是隐藏解锁位** —— 冷启动后为 0，其余门控全武装表路径也不生效；官方链的 custom 模式进入（`CustomerModeLightOn`）正是置此位
-- 固件无主机心跳看门狗：主机停写后按最后一次表内容持续驱动，直到被覆盖或断电
-- EC RAM 表区**不跨重启保持**（重启清零），开机后需重新接管（可配合开机自启）
-
-## 已知限制
-
-- EC 按温度插值（含滞回+斜坡），实时 duty 通常略偏离档位值；平直曲线例外
-- GPU 有约 25% 最低转速地板（RPM ~1621），设更低不生效
-- `0x1804/0x1809`（内核 WMI-only 手动 duty）在此 EC 上直写无效（固件覆写）
-- 官方栈若同时运行，可能周期性重申模式抢占控制权（应用会检测并自动重接管）
-- 接管时不要同时在官方 UWP 里保存风扇曲线
-
-## 项目结构
-
-```text
-FanSlider.csproj      # .NET 8 WinForms
-EcDriver.cs           # \\.\ACPIDriver 封装 (ECREAD/ECWRITE/SMAPC/TMP ioctl)
-FanProtocol.cs        # EC 寄存器表 + 位操作
-FanTableModel.cs      # 16 点曲线模型 + OEM 47 次/表写序
-EcCurveSession.cs     # 核心: 快照→武装→写表→验证→还原 + 接管租约
-MainForm.cs           # 主界面 (滑条/曲线编辑器/状态)
-UiControls.cs         # 自定义控件 (曲线编辑器/滑条/胶囊开关)
-Program.cs            # CLI 诊断与回归测试入口
-```
-
-## 协议逆向来源
-
-本项目基于对机械革命控制中心（GCUService / GCUBridge / UWP）与 EC 固件（ITE EC-V14.6）
-的完整逆向：GCUService 可读源码（JIT hook 还原）、UWP 伪 C、MQTT 协议、bank-aware 8051 反汇编，
-以及大量真机实验（含 0x727 解锁位、T0=0 规则、冷启动 XRAM 清零等关键发现）。
-协议细节与实验记录见各研究文档。
+在逆向过程中使用了多种大语言模型、Harness和提供商，感谢对本项目的帮助。

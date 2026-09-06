@@ -1,0 +1,17 @@
+# Build output
+bin/
+obj/
+
+# Visual Studio / IDE
+.vs/
+*.user
+*.suo
+
+# App runtime artifacts
+selftest.log
+*.log
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
